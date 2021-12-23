@@ -8,11 +8,6 @@ import Register from './components/Register/Register';
 import Logo from './components/Logo/Logo';
 import ImageLinkForm from './components/ImageLinkForm/ImageLinkForm';
 import Rank from './components/Rank/Rank';
-import Clarifai from 'clarifai';
-
-const app = new Clarifai.App({
- apiKey: 'fd7e352183894e5f822991aebd5bda95'
-});
 
 const particlesOptions = {
   particles: {
@@ -33,26 +28,26 @@ const particlesOptions = {
     }*/
   }
 }
-
+const initialState = {
+  input: '',
+  imageUrl: '',
+  box: {},
+  route: 'signin',
+  isSignedIn: false,
+  user: {
+    id: '',
+    name: '',
+    email: '',
+    password: '',
+    entries: 0,
+    joined: new Date()
+  }
+}
 class App extends Component {
   
   constructor() {
     super();
-    this.state = {
-      input: '',
-      imageUrl: '',
-      box: {},
-      route: 'signin',
-      isSignedIn: false,
-      user: {
-        id: '',
-        name: '',
-        email: '',
-        password: '',
-        entries: 0,
-        joined: new Date()
-      }
-    }
+    this.state = initialState;
   }
 
   loadUser = (data) => {
@@ -92,9 +87,14 @@ class App extends Component {
   onButtonSubmit = () => {
     this.setState({imageUrl: this.state.input});
   
-    app.models.predict(
-    Clarifai.FACE_DETECT_MODEL, 
-    this.state.input) // imageUrl can't be passed here due to how react works.. Why? 
+     // imageUrl can't be passed here due to how react works.. Why?
+     fetch('http://localhost:3001/imageurl', {
+      method: 'post',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+          input: this.state.input 
+      })
+    }).then(response => response.json())
     .then(response => {
       if(response) {
         fetch('http://localhost:3001/image', {
@@ -105,6 +105,7 @@ class App extends Component {
             })
         }).then(response => response.json())
         .then(count => this.setState(Object.assign(this.state.user, {entries: count})))
+        .catch(console.log)
       }
       this.displayFaceBox(this.calculateFaceLocation(response))
     })
@@ -114,7 +115,7 @@ class App extends Component {
   
   onRouteChange = (route) => {
     if(route === 'signout') {
-      this.setState({ isSignedIn: false});
+      this.setState(initialState);
     } else if(route === 'signin') {
       this.setState({ isSignedIn: true});
     }
